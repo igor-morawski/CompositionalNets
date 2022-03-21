@@ -79,7 +79,7 @@ We initialize CompositionalNets (i.e. the vMF kernels and mixture models) by clu
 In particular, we initialize the vMF kernels by clustering the feature vectors:
 
 ```
-python Initialization_Code/vMF_clustering.py
+python Code/vMF_clustering.py
 ``` 
 
 Furthermore, we initialize the mixture models by EM-type learning.
@@ -87,14 +87,14 @@ The initial cluster assignment for the EM-type learning is computed based on the
 To compute the similarity matrices use:
  
 ```
-python Initialization_Code/comptSimMat.py
+python Code/comptSimMat.py
 ``` 
 
 As this process takes some time we provide precomputed similarity matrices [here](https://livejohnshopkins-my.sharepoint.com/:u:/g/personal/akortyl1_jh_edu/EU6OcwaW7l1IhpggHJBCjeIBB_xLd28bDUIcoPHKUOhxqg?e=5k34Nx), you need to copy them into the 'models/init_vgg/' folder.
 Afterwards you can compute the initialization of the mixture models by executing:
 
 ```
-python Initialization_Code/Learn_mix_model_vMF_view.py
+python Code/Learn_mix_model_vMF_view.py
 ```
 
 

@@ -1,6 +1,6 @@
 import os
 import torchvision.models as models
-from Code.model import resnet_feature_extractor
+from model import resnet_feature_extractor
 
 # Setup work
 device_ids = [0]

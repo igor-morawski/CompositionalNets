@@ -1,6 +1,6 @@
-from Code.vMFMM import *
+from vMFMM import *
 from config_initialization import vc_num, dataset, categories, data_path, cat_test, device_ids, Astride, Apad, Arf, vMF_kappa, layer,init_path, nn_type, dict_dir, offset, extractor
-from Code.helpers import getImg, imgLoader, Imgset, myresize
+from helpers import getImg, imgLoader, Imgset, myresize
 import torch
 from torch.utils.data import DataLoader
 import cv2

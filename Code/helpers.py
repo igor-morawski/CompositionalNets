@@ -165,6 +165,10 @@ def getImg(mode,categories, dataset, data_path, cat_test=None, occ_level='ZERO',
 				if occ_level == 'ZERO':
 					img_dir = data_path +'coco_occ/{}_zero'.format(category)
 					filelist = data_path +'coco_occ/{}_{}_train.txt'.format(category, occ_level)
+			elif dataset == 'nod':
+				if occ_level == 'UNKNOWN':
+					img_dir = data_path +'nod/{}_unknown'.format(category)
+					filelist = data_path +'nod/{}_{}_train.txt'.format(category, occ_level)
 
 			with open(filelist, 'r') as fh:
 				contents = fh.readlines()
@@ -177,6 +181,11 @@ def getImg(mode,categories, dataset, data_path, cat_test=None, occ_level='ZERO',
 						img = img_dir + '/' + img_path + '.jpg'
 					else:
 						img = img_dir + '/' + img_path + '.JPEG'
+				if dataset=='nod':
+					if occ_level == 'UNKNOWN':
+						img = img_dir + '/' + img_path
+					else:
+						raise Exception
 				else:
 					img = img_dir + '/' + img_path + '.JPEG'
 				occ_img1 = []
@@ -208,6 +217,11 @@ def getImg(mode,categories, dataset, data_path, cat_test=None, occ_level='ZERO',
 				else:
 					img_dir = data_path+'coco_occ/{}_occ'.format(category)
 					filelist = data_path+'coco_occ/{}_{}.txt'.format(category, occ_level)
+			elif dataset == 'nod':
+				if occ_level == 'UNKNOWN':
+					img_dir = data_path +'nod/{}_unknown'.format(category)
+					filelist = data_path +'nod/{}_{}_text.txt'.format(category, occ_level)
+				else: raise Exception
 
 			if os.path.exists(filelist):
 				with open(filelist, 'r') as fh:
@@ -216,7 +230,7 @@ def getImg(mode,categories, dataset, data_path, cat_test=None, occ_level='ZERO',
 				img_list = [cc.strip() for cc in contents]
 				label = categories.index(category)
 				for img_path in img_list:
-					if dataset != 'coco':
+					if dataset != 'coco' or dataset != 'nod':
 						if occ_level=='ZERO':
 							img = img_dir + occ_type + '/' + img_path[:-2] + '.JPEG'
 							occ_img1 = []
@@ -230,6 +244,10 @@ def getImg(mode,categories, dataset, data_path, cat_test=None, occ_level='ZERO',
 								occ_img1 = []
 								occ_img2 = []
 
+					elif datset == 'nod':
+						img = img_dir + occ_type + '/' + img_path
+						occ_img1 = []
+						occ_img2 = []
 					else:
 						img = img_dir + occ_type + '/' + img_path + '.jpg'
 						occ_img1 = []

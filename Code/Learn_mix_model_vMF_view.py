@@ -4,7 +4,7 @@ import os
 import pickle
 import numpy as np
 from config_initialization import vc_num, dataset, categories, data_path, cat_test, device_ids, Astride, Apad, Arf,vMF_kappa, layer,init_path, dict_dir, sim_dir, extractor, model_save_dir
-from Code.helpers import getImg, imgLoader, Imgset
+from helpers import getImg, imgLoader, Imgset
 from torch.utils.data import DataLoader
 import cv2
 import gc

@@ -85,13 +85,12 @@ _C = config     # short alias to avoid coding
 # Experiment name
 _C.NAME = 'default'
 
-# options: 'pascal3d+', 'mnist', 'cifar10', 'coco'
-_C.DATA.DATASET = 'pascal3d+'
+# options: 'pascal3d+', 'mnist', 'cifar10', 'coco', 'nod'
+_C.DATA.DATASET = 'nod' 
 # categories for testing (vehicles only)
-_C.DATA.CATEGORY = ['aeroplane', 'bicycle', 'bus', 'car', 'motorbike', 'train']
+_C.DATA.CATEGORY = ['person', 'bicycle', 'car']
 # categories for training
-_C.DATA.CATEGORY_TRAIN = ['aeroplane', 'bicycle', 'boat', 'bottle', 'bus', 'car',
-                          'chair', 'diningtable', 'motorbike', 'sofa', 'train', 'tvmonitor']
+_C.DATA.CATEGORY_TRAIN = ['person', 'bicycle', 'car']
 
 # None means load from env variable.
 _C.DATA.BASE_DIR = PosixPath('data/')#None
@@ -118,7 +117,7 @@ _C.MODEL.BACKBONE_TYPE = 'vgg'
 # Training configs
 ###############################################################################
 # Occlusion levels for training
-_C.TRAIN.OCC_LEVELS = ['ZERO']
+_C.TRAIN.OCC_LEVELS = ['UNKNOWN']
 # Batch size for training. Note that it is the total (i.e. effective) batch
 # size. If there are multiprocess/multigpu involved, each process/gpu may take
 # a subset of the total batch size.
@@ -143,7 +142,7 @@ _C.TRAIN.TRAIN_VC = True
 # Train mixture model
 _C.TRAIN.TRAIN_MIX = True
 # The occlusion types for validation during the training
-_C.TRAIN.VAL_OCCLUSIONS = ['ZERO']
+_C.TRAIN.VAL_OCCLUSIONS = ['UNKNOWN']
 # Frequency to run validation during the training
 _C.TRAIN.VAL_FREQUENCY = 100
 # Run validation before training
@@ -154,7 +153,7 @@ _C.TRAIN.INFO.LOG_FREQUENCY = 10
 _C.TRAIN.INFO.TENSORBOARD = True
 
 # Occlusion levels for testing
-_C.TEST.OCC_LEVELS = ['ZERO', 'ONE', 'FIVE', 'NINE']
+_C.TEST.OCC_LEVELS = ['UNKNOWN']
 
 _C.freeze()  # avoid typo / wrong config keys.
 
