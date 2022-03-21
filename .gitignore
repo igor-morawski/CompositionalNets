@@ -167,3 +167,5 @@ demo/*
 !demo/487059_4_train2017_predclass_motorbike_and_occluder_map.jpg
 !demo/81819_0_train2017_predclass_bus_and_occluder_map.jpg
 
+
+models_pretrained
