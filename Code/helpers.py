@@ -3,8 +3,8 @@ import torch
 import cv2
 import glob
 import torch.nn.functional as F
-from Code.config import vc_num, categories, occ_types_vmf, occ_types_bern
-from Code.vMFMM import *
+from config import vc_num, categories, occ_types_vmf, occ_types_bern
+from vMFMM import *
 from torchvision import transforms
 from PIL import Image
 
