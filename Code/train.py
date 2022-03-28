@@ -72,11 +72,16 @@ def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedi
 	else:
 		model.mix_model.requires_grad = True
 
+	print("Params...")
+	for name, param in model.named_parameters():
+		print(name, param.requires_grad)
+	raise Exception()
+
 	classification_loss = nn.CrossEntropyLoss()
 	cluster_loss = ClusterLoss()
 
-	optimizer = torch.optim.Adagrad(params=filter(lambda param: param.requires_grad, model.parameters()), lr=learning_rate)
-	scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer,gamma=0.98)
+	optimizer = torch.optim.SGD(params=filter(lambda param: param.requires_grad, model.parameters()), lr=learning_rate)
+	# scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer,gamma=0.98)
 
 	print('Training')
 
@@ -124,7 +129,7 @@ def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedi
 			train_loss += loss.detach() * input.shape[0]
 		updated_clutter = update_clutter_model(model,device_ids)
 		model.clutter_model = updated_clutter
-		scheduler.step()
+		# scheduler.step()
 		train_acc = correct.cpu().item() / total_train
 		train_loss = train_loss.cpu().item() / total_train
 		out_str = 'Epochs: [{}/{}], Train Acc:{}, Train Loss:{}'.format(epoch + 1, epochs, train_acc, train_loss)
@@ -218,7 +223,7 @@ if __name__ == '__main__':
 
 	# get training and validation images
 	for occ_level in occ_levels_train:
-		if occ_level == 'ZERO' or 'UNKNOWN':
+		if occ_level == 'ZERO' or occ_level == 'UNKNOWN':
 			occ_types = ['']
 			train_fac=0.9
 		else:
