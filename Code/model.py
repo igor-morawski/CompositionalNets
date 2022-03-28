@@ -416,3 +416,21 @@ class SoftMaxTemp(nn.Module):
     def forward(self, x):
         x = torch.exp(torch.clamp(x*self.temp, -88.7, 88.7))
         return x / torch.sum(x, axis=1, keepdim=True)
+
+class BaselineNet(nn.Module):
+    def __init__(self, backbone, classifier, architecture, num_classes):
+        super(BaselineNet, self).__init__()
+        self.backbone = backbone
+        self.architecture = architecture
+        if self.architecture != "vgg16": raise NotImplementedError
+        self.avgpool = nn.AdaptiveAvgPool2d(output_size=(7, 7))
+        self.flatten = nn.Flatten()
+        self.classifier = classifier
+        self.softmax = nn.Softmax()
+        self.num_classes = num_classes
+    def forward(self, x):
+        features = self.backbone(x)
+        features_pool = self.avgpool(features)
+        features_flat = self.flatten(features_pool)
+        class_logits = self.classifier(features_flat)
+        return self.softmax(class_logits)

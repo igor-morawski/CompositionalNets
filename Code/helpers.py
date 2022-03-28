@@ -85,6 +85,7 @@ def getCompositionModel(device_id,mix_model_path,layer,categories,compnet_type='
 		mix = np.transpose(mix, [0, 1, 3, 2])
 		mix_models.append(torch.from_numpy(mix).type(torch.FloatTensor))
 		msz.append(mix.shape)
+		print(mix.shape, filename)
 
 	maxsz = np.max(np.asarray(msz),0)
 	maxsz[2:4] = maxsz[2:4] + (np.mod(maxsz[2:4], 2) == 0)
@@ -169,6 +170,10 @@ def getImg(mode,categories, dataset, data_path, cat_test=None, occ_level='ZERO',
 				if occ_level == 'UNKNOWN':
 					img_dir = data_path +'nod/{}_unknown'.format(category)
 					filelist = data_path +'nod/{}_{}_train.txt'.format(category, occ_level)
+				else:
+					raise Exception(f"No dataset {dataset}, {occ_level}")
+			else:
+				raise Exception(f"No dataset {dataset}")
 
 			with open(filelist, 'r') as fh:
 				contents = fh.readlines()
@@ -220,8 +225,8 @@ def getImg(mode,categories, dataset, data_path, cat_test=None, occ_level='ZERO',
 			elif dataset == 'nod':
 				if occ_level == 'UNKNOWN':
 					img_dir = data_path +'nod/{}_unknown'.format(category)
-					filelist = data_path +'nod/{}_{}_text.txt'.format(category, occ_level)
-				else: raise Exception
+					filelist = data_path +'nod/{}_{}_test.txt'.format(category, occ_level)
+				else: raise Exception(f"No occlusion {occ_level} for {dataset}")
 
 			if os.path.exists(filelist):
 				with open(filelist, 'r') as fh:
@@ -230,7 +235,7 @@ def getImg(mode,categories, dataset, data_path, cat_test=None, occ_level='ZERO',
 				img_list = [cc.strip() for cc in contents]
 				label = categories.index(category)
 				for img_path in img_list:
-					if dataset != 'coco' or dataset != 'nod':
+					if dataset != 'coco' and dataset != 'nod':
 						if occ_level=='ZERO':
 							img = img_dir + occ_type + '/' + img_path[:-2] + '.JPEG'
 							occ_img1 = []
@@ -244,7 +249,7 @@ def getImg(mode,categories, dataset, data_path, cat_test=None, occ_level='ZERO',
 								occ_img1 = []
 								occ_img2 = []
 
-					elif datset == 'nod':
+					elif dataset == 'nod':
 						img = img_dir + occ_type + '/' + img_path
 						occ_img1 = []
 						occ_img2 = []

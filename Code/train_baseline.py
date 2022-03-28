@@ -1,6 +1,6 @@
-from model import Net
-from helpers import getImg, Imgset, imgLoader, save_checkpoint,getCompositionModel,getVmfKernels, update_clutter_model
-from config import device_ids, mix_model_path, categories, categories_train, dict_dir, dataset, data_path, layer, vc_num, model_save_dir, compnet_type,backbone_type, vMF_kappa,num_mixtures
+from model import BaselineNet
+from helpers import getImg, Imgset, imgLoader, save_checkpoint
+from config import device_ids, categories, categories_train, dict_dir, dataset, data_path, layer, model_save_dir, backbone_type
 from config import config as cfg
 from torch.utils.data import DataLoader
 from losses import ClusterLoss
@@ -17,16 +17,10 @@ import random
 #---------------------
 # Training Parameters
 #---------------------
-alpha = 3  # vc-loss
-beta = 3 # mix loss
-likely = 0.6 # occlusion likelihood
-lr = 1e-5 # learning rate
+lr = 1e-2 # learning rate
 batch_size = 1 # these are pseudo batches as the aspect ratio of images for CompNets is not square
 # Training setup
-vc_flag = True # train the vMF kernels
-mix_flag = True # train mixture components
 ncoord_it = 50 	#number of epochs to train
-
 bool_mixture_model_bg = False #True: use a mixture of background models per pixel, False: use one bg model for whole image
 bool_load_pretrained_model = False
 bool_train_with_occluders = False
@@ -38,11 +32,11 @@ else:
 	occ_levels_train = ['ZERO']
 occ_levels_train = ['UNKNOWN']
 
-out_dir = model_save_dir + 'train_{}_a{}_b{}_vc{}_mix{}_occlikely{}_vc{}_lr_{}_{}_pretrained{}_epochs_{}_occ{}_backbone{}_{}/'.format(
-	layer, alpha,beta, vc_flag, mix_flag, likely, vc_num, lr, dataset, bool_load_pretrained_model,ncoord_it,bool_train_with_occluders,backbone_type,device_ids[0])
+out_dir = model_save_dir + 'baseline_train_{}_lr_{}_{}_pretrained{}_epochs_{}_occ{}_backbone{}_{}/'.format(
+	layer, lr, dataset, bool_load_pretrained_model, ncoord_it,bool_train_with_occluders,backbone_type,device_ids[0])
 
 
-def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedir, alpha=3,beta=3, vc_flag=True, mix_flag=False):
+def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedir):
 	best_check = {
 		'epoch': 0,
 		'best': 0,
@@ -62,18 +56,16 @@ def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedi
 	for param in model.backbone.parameters():
 		param.requires_grad = False
 
-	if not vc_flag:
-		model.conv1o1.weight.requires_grad = False
-	else:
-		model.conv1o1.weight.requires_grad = True
+	for param in model.classifier.parameters():
+		param.requires_grad = False
 
-	if not mix_flag:
-		model.mix_model.requires_grad = False
-	else:
-		model.mix_model.requires_grad = True
+	if not model.architecture == "vgg16": raise NotImplementedError
+
+	for param in getattr(model.classifier, "6").parameters():
+		param.requires_grad = True
+	
 
 	classification_loss = nn.CrossEntropyLoss()
-	cluster_loss = ClusterLoss()
 
 	optimizer = torch.optim.Adagrad(params=filter(lambda param: param.requires_grad, model.parameters()), lr=learning_rate)
 	scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer,gamma=0.98)
@@ -98,20 +90,13 @@ def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedi
 			input = input.cuda(device_ids[0])
 			label = label.cuda(device_ids[0])
 
-			output, vgg_feat, like = model(input)
+			output = model(input)
 
 			out = output.argmax(1)
 			correct += torch.sum(out == label)
 			class_loss = classification_loss(output, label) / output.shape[0]
 
 			loss = class_loss
-			if alpha != 0:
-				clust_loss = cluster_loss(vgg_feat, model.conv1o1.weight) / output.shape[0]
-				loss += alpha * clust_loss
-
-			if beta!=0:
-				mix_loss = like[0,label[0]]
-				loss += -beta *mix_loss
 
 			#with torch.autograd.set_detect_anomaly(True):
 			loss.backward()
@@ -122,8 +107,6 @@ def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedi
 				optimizer.zero_grad()
 
 			train_loss += loss.detach() * input.shape[0]
-		updated_clutter = update_clutter_model(model,device_ids)
-		model.clutter_model = updated_clutter
 		scheduler.step()
 		train_acc = correct.cpu().item() / total_train
 		train_loss = train_loss.cpu().item() / total_train
@@ -146,7 +129,7 @@ def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedi
 					input,_, label = data
 					input = input.cuda(device_ids[0])
 					label = label.cuda(device_ids[0])
-					output,_,_ = model(input)
+					output = model(input)
 					out = output.argmax(1)
 					out_pred[index] = out
 					correct_local += torch.sum(out == label)
@@ -172,23 +155,27 @@ def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedi
 					'val_acc': val_acc,
 					'epoch': epoch
 				}
-			save_checkpoint(best_check, savedir + 'vc' + str(epoch + 1) + '.pth', True)
+			save_checkpoint(best_check, savedir + 'bl' + str(epoch + 1) + '.pth', True)
 
 			print('\n')
 		out_file.close()
+		
 	return best_check
 
 if __name__ == '__main__':
 	if backbone_type=='vgg':
 		if layer=='pool4':
 			extractor = models.vgg16(pretrained=True).features[0:24]
+			raise NotImplementedError
 		else:
 			extractor = models.vgg16(pretrained=True).features
+			classifier = models.vgg16(pretrained=True).classifier[:6].eval()
+			classifier.add_module("6", nn.Linear(in_features=4096, out_features=len(categories_train), bias=True))
 	elif backbone_type=='resnet50' or backbone_type=='resnext':
+		raise NotImplementedError
 		extractor = resnet_feature_extractor(backbone_type, layer)
 
 	extractor.cuda(device_ids[0]).eval()
-	weights = getVmfKernels(dict_dir, device_ids)
 
 	if bool_load_pretrained_model:
 		pretrained_file = 'PATH TO .PTH FILE HERE'
@@ -196,14 +183,9 @@ if __name__ == '__main__':
 		pretrained_file = ''
 
 
-	occ_likely = []
-	for i in range(len(categories_train)):
-		# setting the same occlusion likelihood for all classes
-		occ_likely.append(likely)
 	
 	# load the CompNet initialized with ML and spectral clustering
-	mix_models = getCompositionModel(device_ids,mix_model_path,layer,categories_train,compnet_type=compnet_type)
-	net = Net(extractor, weights, vMF_kappa, occ_likely, mix_models, bool_mixture_bg=bool_mixture_model_bg,compnet_type=compnet_type,num_mixtures=num_mixtures, vc_thresholds=cfg.MODEL.VC_THRESHOLD)
+	net = BaselineNet(extractor,classifier,architecture="vgg16" if backbone_type=="vgg" else backbone_type, num_classes=len(categories_train))
 	if bool_load_pretrained_model:
 		net.load_state_dict(torch.load(pretrained_file, map_location='cuda:{}'.format(device_ids[0]))['state_dict'])
 
@@ -254,9 +236,9 @@ if __name__ == '__main__':
 	info = out_dir + 'config.txt'
 	config_file = open(info, 'a')
 	config_file.write(dataset)
-	out_str = 'layer{}_a{}_b{}_vc{}_mix{}_occlikely{}_vc{}_lr{}/'.format(layer,alpha,beta,vc_flag,mix_flag,likely,vc_num,lr)
+	out_str = 'layer{}_lr{}/'.format(layer,lr)
 	config_file.write(out_str)
-	out_str = 'Train\nDir: {}, vMF_kappa: {}, alpha: {},beta: {}, likely:{}\n'.format(out_dir, vMF_kappa, alpha,beta,likely)
+	out_str = 'Train\nDir: {}\n'.format(out_dir)
 	config_file.write(out_str)
 	print(out_str)
 	out_str = 'pretrain{}_file{}'.format(bool_load_pretrained_model,pretrained_file)
@@ -265,6 +247,6 @@ if __name__ == '__main__':
 	config_file.close()
 
 	train(model=net, train_data=train_imgset, val_data=val_imgsets, epochs=ncoord_it, batch_size=batch_size,
-		  learning_rate=lr, savedir=out_dir, alpha=alpha,beta=beta, vc_flag=vc_flag, mix_flag=mix_flag)
+		  learning_rate=lr, savedir=out_dir)
 
 

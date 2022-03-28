@@ -7,14 +7,13 @@ device_ids = [0]
 data_path = 'data/'
 model_save_dir = 'models/'
 
-dataset = 'pascal3d+' # pascal3d+
+dataset = 'nod' # pascal3d+
 nn_type = 'vgg' #vgg, resnet50, resnext, resnet152
 vMF_kappa=30
 vc_num = 512
 
-categories = ['aeroplane', 'bicycle', 'boat', 'bottle', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa',
-			  'train', 'tvmonitor']
-cat_test = ['aeroplane', 'bicycle', 'bus', 'car', 'motorbike', 'train']
+categories = ['person', 'bicycle', 'car']
+cat_test = ['person', 'bicycle', 'car']
 
 if nn_type =='vgg':
 	layer = 'pool5'  # 'pool5','pool4'

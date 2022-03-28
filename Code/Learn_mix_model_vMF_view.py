@@ -24,16 +24,15 @@ bool_plot_view_p3d=False
 mixdir = init_path + 'mix_model_vmf_{}_EM_all/'.format(dataset)
 if not os.path.exists(mixdir):
 	os.makedirs(mixdir)
-occ_level='ZERO'
+occ_level='UNKNOWN'
 occ_type=''
 spectral_split_thresh=0.1
 
 
 def learn_mix_model_vMF(category,num_layers = 2,num_clusters_per_layer = 2,frac_data=1.0):
-
 	imgs, labels, masks = getImg('train', [category], dataset, data_path, cat_test, occ_level, occ_type, bool_load_occ_mask=False)
 	# similarity matrix
-	sim_fname = model_save_dir+'init_vgg/'+'similarity_vgg_pool4/'+'simmat_mthrh045_{}_K{}.pickle'.format(category, 512)
+	sim_fname = model_save_dir+'init_vgg/'+f'similarity_vgg_{layer}_nod/'+'simmat_mthrh045_{}_K{}.pickle'.format(category, 512)
 
 	# Spectral clustering based on the similarity matrix
 	with open(sim_fname, 'rb') as fh:
@@ -52,6 +51,8 @@ def learn_mix_model_vMF(category,num_layers = 2,num_clusters_per_layer = 2,frac_
 
 	r_set = []#[None for nn in range(N)]
 	#layer_features 	  =	np.zeros((N,featDim,max_1,max_2),dtype=np.float32)
+
+
 	for ii,data in enumerate(data_loader):
 		if np.mod(ii,100)==0:
 			print('{} / {}'.format(ii,N))
@@ -119,6 +120,7 @@ def learn_mix_model_vMF(category,num_layers = 2,num_clusters_per_layer = 2,frac_
 
 		print('Clustering layer {} ...'.format(i))
 		for k in range(np.power(num_clusters_per_layer,i)):
+			print(k)
 			parent_counter 	= int(np.floor(k / num_clusters_per_layer))
 			leaf_counter	= int(np.mod(k,num_clusters_per_layer))
 			idx = np.where(LABELS[i][parent_counter] == leaf_counter)[0]
@@ -152,6 +154,13 @@ def learn_mix_model_vMF(category,num_layers = 2,num_clusters_per_layer = 2,frac_
 
 	mixmodel_lbs = np.ones(len(LABELS[0][0]))*-1
 	K=len(FINAL_CLUSTER_ASSIGNMENT) # number of clusters
+	while K < 4:
+		FINAL_CLUSTER_ASSIGNMENT.append([])
+		LABELS_SUB.append([])
+		IMAGEIDX_SUB.append([])
+		MAT_SUB.append([])
+		K=len(FINAL_CLUSTER_ASSIGNMENT) # number of clusters
+	print(K, category, sim_fname)
 	for i in range(K):
 		mixmodel_lbs[FINAL_CLUSTER_ASSIGNMENT[i]]=i
 

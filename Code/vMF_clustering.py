@@ -14,7 +14,7 @@ imgs_par_cat =np.zeros(len(categories))
 bool_load_existing_cluster = False
 bins = 4
 
-occ_level = 'ZERO'
+occ_level = 'UNKNOWN'
 occ_type = ''
 imgs, labels, masks = getImg('train', categories, dataset, data_path, cat_test, occ_level, occ_type, bool_load_occ_mask=False)
 imgset = Imgset(imgs, masks, labels, imgLoader, bool_square_images=False)

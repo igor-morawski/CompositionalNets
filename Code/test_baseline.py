@@ -4,19 +4,18 @@ import numpy as np
 from torch.utils.data import DataLoader
 from config import categories, categories_train, dataset, data_path, device_ids, mix_model_path, dict_dir, layer, vMF_kappa, model_save_dir, compnet_type, backbone_type, num_mixtures
 from config import config as cfg
-from model import Net
+from model import BaselineNet
 from helpers import getImg, Imgset, imgLoader, getVmfKernels, getCompositionModel, update_clutter_model
 from model import resnet_feature_extractor
 import tqdm
 import torchvision.models as models
-
+from torch import nn
 ###################
 # Test parameters #
 ###################
 likely = 0.6  # occlusion likelihood
 occ_levels = ['ZERO', 'ONE', 'FIVE', 'NINE'] # occlusion levels to be evaluated [0%,20-40%,40-60%,60-80%]
 occ_levels = ['UNKNOWN'] # for NOD
-bool_load_pretrained_model = True # False if you want to load initialization (see Initialization_Code/)
 bool_mixture_model_bg = False 	# use maximal mixture model or sum of all mixture models, not so important
 bool_multi_stage_model = False 	# this is an old setup
 
@@ -38,6 +37,7 @@ def test(models, test_data, batch_size):
 
 			output, *_ = models[0](input)
 			out = output.cpu().numpy()
+			out = np.expand_dims(out, 0)
 
 			scores = np.concatenate((scores,out))
 			out = out.argmax(1)
@@ -52,61 +52,44 @@ def test(models, test_data, batch_size):
 	return test_acc, scores
 
 if __name__ == '__main__':
-
-	if compnet_type=='bernoulli':
-		bool_mixture_model_bg = True
-
-	if bool_load_pretrained_model:
-		if not backbone_type=='vgg': raise NotImplementedError
-		vc_file = os.path.join(model_save_dir, f'best_{layer}_{dataset}.pth')
-	else:
-		raise NotImplementedError
-
-	occ_likely = []
-	for i in range(len(categories_train)):
-		occ_likely.append(likely)
-
-	############################
-	# Get CompositionalNet Init
-	############################
 	if backbone_type=='vgg':
 		if layer=='pool4':
 			extractor = models.vgg16(pretrained=True).features[0:24]
+			raise NotImplementedError
 		else:
 			extractor = models.vgg16(pretrained=True).features
-	elif backbone_type=='resnet50' or backbone_type == 'resnet18' or backbone_type == 'resnext' or backbone_type=='densenet':
+			classifier = models.vgg16(pretrained=True).classifier[:6].eval()
+			classifier.add_module("6", nn.Linear(in_features=4096, out_features=len(categories_train), bias=True))
+	elif backbone_type=='resnet50' or backbone_type=='resnext':
+		raise NotImplementedError
 		extractor = resnet_feature_extractor(backbone_type, layer)
 
 	extractor.cuda(device_ids[0]).eval()
-
-	weights = getVmfKernels(dict_dir, device_ids)
-	mix_models = getCompositionModel(device_ids, mix_model_path, layer, categories_train,compnet_type=compnet_type,num_mixtures=num_mixtures)
-	net = Net(extractor, weights, vMF_kappa, occ_likely, mix_models, bool_mixture_bg=bool_mixture_model_bg,compnet_type=compnet_type, num_mixtures=num_mixtures, vc_thresholds=cfg.MODEL.VC_THRESHOLD)
+	classifier.cuda(device_ids[0]).eval()
+	
+	net = BaselineNet(extractor,classifier,architecture="vgg16" if backbone_type=="vgg" else backbone_type, num_classes=len(categories_train))
 	if device_ids:
 		net = net.cuda(device_ids[0])
 	nets=[]
 	nets.append(net.eval())
-
-
-	if bool_load_pretrained_model:
-		if device_ids:
-			load_dict = torch.load(vc_file, map_location='cuda:{}'.format(device_ids[0]))
-		else:
-			load_dict = torch.load(vc_file, map_location='cpu')
-		net.load_state_dict(load_dict['state_dict'])
-		if device_ids:
-			net = net.cuda(device_ids[0])
-		updated_clutter = update_clutter_model(net,device_ids)
-		net.clutter_model = updated_clutter
-		nets = []
-		nets.append(net)
+	
+	vc_file = os.path.join(model_save_dir, f"baseline_best_{layer}_{dataset}.pth")
+	print(f"Loading {vc_file}...")
+	
+	if device_ids:
+		load_dict = torch.load(vc_file, map_location='cuda:{}'.format(device_ids[0]))
+	else:
+		load_dict = torch.load(vc_file, map_location='cpu')
+	net.load_state_dict(load_dict['state_dict'])
+	if device_ids:
+		net = net.cuda(device_ids[0])
 
 	############################
 	# Test Loop
 	############################
 	for occ_level in occ_levels:
 
-		if occ_level == 'ZERO' or occ_level == 'UNKNOWN':
+		if occ_level == 'ZERO' or 'UNKNOWN':
 			occ_types = ['']
 		else:
 			if dataset=='pascal3d+':
@@ -116,7 +99,7 @@ if __name__ == '__main__':
 
 		for index, occ_type in enumerate(occ_types):
 			# load images
-			test_imgs, test_labels, masks = getImg('test', categories_train, dataset,data_path, categories, occ_level, occ_type,bool_load_occ_mask=True)
+			test_imgs, test_labels, masks = getImg('test', categories_train, dataset,data_path, categories, occ_level, occ_type,bool_load_occ_mask=False)
 			print('Total imgs for test of occ_level {} and occ_type {} '.format(occ_level, occ_type) + str(len(test_imgs)))
 			# get image loader
 			test_imgset = Imgset(test_imgs, masks, test_labels, imgLoader, bool_square_images=False)

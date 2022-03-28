@@ -14,7 +14,7 @@ import torch
 paral_num = 10
 nimg_per_cat = 5000
 imgs_par_cat =np.zeros(len(categories))
-occ_level='ZERO'
+occ_level='UNKNOWN'
 occ_type=''
 
 print('max_images {}'.format(nimg_per_cat))
@@ -37,7 +37,7 @@ for category in categories:
 	imgs=imgs[:nimg_per_cat]
 	N=len(imgs)
 	##HERE
-	imgset = Imgset(imgs, masks, labels, imgLoader, bool_square_images=False,bool_cutout=False,bool_pytorch=bool_pytorch)
+	imgset = Imgset(imgs, masks, labels, imgLoader, bool_square_images=False)
 	data_loader = DataLoader(dataset=imgset, batch_size=1, shuffle=False)
 	savename = os.path.join(sim_dir,'simmat_mthrh045_{}_K{}.pickle'.format(category,vc_num))
 	if not os.path.exists(savename):

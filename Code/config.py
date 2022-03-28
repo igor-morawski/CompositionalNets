@@ -184,11 +184,11 @@ def finalize_configs(is_training: bool):
     _C.DATA.DICT_PATH = _C.DATA.INIT_PATH / \
         'dictionary_{}'.format(_C.MODEL.BACKBONE_TYPE)
     _C.DATA.DICT_DIR = _C.DATA.DICT_PATH / \
-        'dictionary_{}.pickle'.format(_C.MODEL.LAYER)
+        'dictionary_{}_512.pickle'.format(_C.MODEL.LAYER)
 
     _C.DATA.MIX_MODEL_PATH = _C.DATA.INIT_PATH / \
         'mix_model_{}_{}_EM_all/'.format(_C.MODEL.COMPNET_TYPE,
-                                         'pascal3d+')
+                                         'nod')
     if _C.GPUS is None:
         _C.GPUS = list(range(torch.cuda.device_count()))
 
