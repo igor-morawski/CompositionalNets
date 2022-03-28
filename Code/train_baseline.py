@@ -67,8 +67,8 @@ def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedi
 
 	classification_loss = nn.CrossEntropyLoss()
 
-	optimizer = torch.optim.Adagrad(params=filter(lambda param: param.requires_grad, model.parameters()), lr=learning_rate)
-	scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer,gamma=0.98)
+	optimizer = torch.optim.SGD(params=filter(lambda param: param.requires_grad, model.parameters()), lr=learning_rate)
+	# scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer,gamma=0.98)
 
 	print('Training')
 
@@ -107,7 +107,7 @@ def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedi
 				optimizer.zero_grad()
 
 			train_loss += loss.detach() * input.shape[0]
-		scheduler.step()
+		# scheduler.step()
 		train_acc = correct.cpu().item() / total_train
 		train_loss = train_loss.cpu().item() / total_train
 		out_str = 'Epochs: [{}/{}], Train Acc:{}, Train Loss:{}'.format(epoch + 1, epochs, train_acc, train_loss)
