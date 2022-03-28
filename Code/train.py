@@ -72,11 +72,6 @@ def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedi
 	else:
 		model.mix_model.requires_grad = True
 
-	print("Params...")
-	for name, param in model.named_parameters():
-		print(name, param.requires_grad)
-	raise Exception()
-
 	classification_loss = nn.CrossEntropyLoss()
 	cluster_loss = ClusterLoss()
 
