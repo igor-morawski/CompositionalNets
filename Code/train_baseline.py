@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import random
+import datetime
 
 #---------------------
 # Training Parameters
@@ -20,7 +21,7 @@ import random
 lr = 1e-2 # learning rate
 batch_size = 1 # these are pseudo batches as the aspect ratio of images for CompNets is not square
 # Training setup
-ncoord_it = 50 	#number of epochs to train
+ncoord_it = 25 	#number of epochs to train
 bool_mixture_model_bg = False #True: use a mixture of background models per pixel, False: use one bg model for whole image
 bool_load_pretrained_model = False
 bool_train_with_occluders = False
@@ -32,7 +33,8 @@ else:
 	occ_levels_train = ['ZERO']
 occ_levels_train = ['UNKNOWN']
 
-out_dir = model_save_dir + 'baseline_train_{}_lr_{}_{}_pretrained{}_epochs_{}_occ{}_backbone{}_{}/'.format(
+date = datetime.datetime.today().strftime('%Y%m%d_%H%M%S')
+out_dir = model_save_dir + 'baseline_train_{}_{}_lr_{}_{}_pretrained{}_epochs_{}_occ{}_backbone{}_{}/'.format(date,
 	layer, lr, dataset, bool_load_pretrained_model, ncoord_it,bool_train_with_occluders,backbone_type,device_ids[0])
 
 
@@ -155,7 +157,12 @@ def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedi
 					'val_acc': val_acc,
 					'epoch': epoch
 				}
-			save_checkpoint(best_check, savedir + 'bl' + str(epoch + 1) + '.pth', True)
+				save_checkpoint(best_check, savedir + f'baseline_best_{layer}_{dataset}.pth', True)
+			save_checkpoint({
+					'state_dict': model.state_dict(),
+					'val_acc': val_acc,
+					'epoch': epoch
+				}, savedir + f'baseline_last_{layer}_{dataset}.pth', True)
 
 			print('\n')
 		out_file.close()

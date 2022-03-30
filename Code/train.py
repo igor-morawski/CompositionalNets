@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import random
+import datetime
 
 #---------------------
 # Training Parameters
@@ -20,13 +21,15 @@ import random
 alpha = 3  # vc-loss
 beta = 3 # mix loss
 likely = 0.6 # occlusion likelihood
-lr = 1e-5 # learning rate
+lr = 1e-2 # learning rate
 batch_size = 1 # these are pseudo batches as the aspect ratio of images for CompNets is not square
 # Training setup
 vc_flag = True # train the vMF kernels
 mix_flag = True # train mixture components
-ncoord_it = 50 	#number of epochs to train
+ncoord_it = 25 	#number of epochs to train
 
+cls_w = 100
+assert type(cls_w) == int
 bool_mixture_model_bg = False #True: use a mixture of background models per pixel, False: use one bg model for whole image
 bool_load_pretrained_model = False
 bool_train_with_occluders = False
@@ -38,9 +41,11 @@ else:
 	occ_levels_train = ['ZERO']
 occ_levels_train = ['UNKNOWN']
 
-out_dir = model_save_dir + 'train_{}_a{}_b{}_vc{}_mix{}_occlikely{}_vc{}_lr_{}_{}_pretrained{}_epochs_{}_occ{}_backbone{}_{}/'.format(
+date = datetime.datetime.today().strftime('%Y%m%d_%H%M%S')
+out_dir = model_save_dir + 'train_{}_{}_a{}_b{}_vc{}_mix{}_occlikely{}_vc{}_lr_{}_{}_pretrained{}_epochs_{}_occ{}_backbone{}_{}/'.format(date,
 	layer, alpha,beta, vc_flag, mix_flag, likely, vc_num, lr, dataset, bool_load_pretrained_model,ncoord_it,bool_train_with_occluders,backbone_type,device_ids[0])
-
+if cls_w != 1:
+	out_dir = out_dir.replace("_lr_", f"_clsw_{cls_w}_lr_")
 
 def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedir, alpha=3,beta=3, vc_flag=True, mix_flag=False):
 	best_check = {
@@ -102,7 +107,7 @@ def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedi
 
 			out = output.argmax(1)
 			correct += torch.sum(out == label)
-			class_loss = classification_loss(output, label) / output.shape[0]
+			class_loss = cls_w * classification_loss(output, label) / output.shape[0]
 
 			loss = class_loss
 			if alpha != 0:
@@ -172,7 +177,12 @@ def train(model, train_data, val_data, epochs, batch_size, learning_rate, savedi
 					'val_acc': val_acc,
 					'epoch': epoch
 				}
-			save_checkpoint(best_check, savedir + 'vc' + str(epoch + 1) + '.pth', True)
+				save_checkpoint(best_check, savedir + f'best_{layer}_{dataset}.pth', True)
+			save_checkpoint({
+					'state_dict': model.state_dict(),
+					'val_acc': val_acc,
+					'epoch': epoch
+				}, savedir + f'last_{layer}_{dataset}.pth', True)
 
 			print('\n')
 		out_file.close()
